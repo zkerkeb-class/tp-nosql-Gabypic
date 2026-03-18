@@ -1,0 +1,1045 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <title>Pokédex NoSQL</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #0f172a;
+        --bg-card: #1f2937;
+        --border: #374151;
+        --accent: #fbbf24;
+        --accent-soft: rgba(251, 191, 36, 0.15);
+        --text: #e5e7eb;
+        --text-soft: #9ca3af;
+        --danger: #f87171;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+          sans-serif;
+        background: radial-gradient(circle at top, #1f2937 0, #020617 55%);
+        color: var(--text);
+      }
+
+      .layout {
+        min-height: 100vh;
+        display: grid;
+        grid-template-rows: auto 1fr;
+      }
+
+      header {
+        border-bottom: 1px solid var(--border);
+        padding: 0.75rem 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        backdrop-filter: blur(12px);
+        background: linear-gradient(
+          to right,
+          rgba(15, 23, 42, 0.96),
+          rgba(15, 23, 42, 0.85)
+        );
+        position: sticky;
+        top: 0;
+        z-index: 20;
+      }
+
+      header h1 {
+        font-size: 1.1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin: 0;
+      }
+
+      header h1 span.logo-dot {
+        width: 0.65rem;
+        height: 0.65rem;
+        border-radius: 999px;
+        background: radial-gradient(circle at 30% 30%, #fef9c3, #fbbf24);
+        box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.3);
+      }
+
+      main {
+        padding: 1.5rem;
+        max-width: 1200px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: minmax(0, 2.2fr) minmax(280px, 1fr);
+        gap: 1.5rem;
+      }
+
+      @media (max-width: 900px) {
+        main {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+
+      .card {
+        border-radius: 1rem;
+        border: 1px solid var(--border);
+        background: radial-gradient(circle at top left, #111827 0, #020617 55%);
+        padding: 1.1rem 1.2rem;
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.65);
+      }
+
+      .card-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        margin-bottom: 0.75rem;
+      }
+
+      .card-header h2 {
+        font-size: 0.95rem;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--text-soft);
+        margin: 0;
+      }
+
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+      }
+
+      .chip {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.5rem;
+        border-radius: 999px;
+        border: 1px solid rgba(156, 163, 175, 0.4);
+        color: var(--text-soft);
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.2rem 0.55rem;
+        border-radius: 999px;
+        background: rgba(148, 163, 184, 0.1);
+        color: var(--text-soft);
+        font-size: 0.7rem;
+      }
+
+      .pill-dot {
+        width: 0.35rem;
+        height: 0.35rem;
+        border-radius: 999px;
+        background: var(--accent);
+      }
+
+      .section-title-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+      }
+
+      .section-title-row h3 {
+        margin: 0;
+        font-size: 0.9rem;
+      }
+
+      .section-title-row small {
+        color: var(--text-soft);
+        font-size: 0.7rem;
+      }
+
+      .filters {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+      }
+
+      @media (max-width: 900px) {
+        .filters {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+      }
+
+      .field label {
+        font-size: 0.7rem;
+        color: var(--text-soft);
+      }
+
+      input,
+      select,
+      button,
+      textarea {
+        font-family: inherit;
+        font-size: 0.8rem;
+      }
+
+      input,
+      select,
+      textarea {
+        border-radius: 0.5rem;
+        border: 1px solid var(--border);
+        padding: 0.35rem 0.5rem;
+        background: rgba(15, 23, 42, 0.9);
+        color: var(--text);
+      }
+
+      input:focus,
+      select:focus,
+      textarea:focus {
+        outline: 2px solid rgba(251, 191, 36, 0.65);
+        outline-offset: 1px;
+      }
+
+      button {
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.6);
+        padding: 0.35rem 0.8rem;
+        background: linear-gradient(to right, #111827, #020617);
+        color: var(--text);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        transition: transform 0.08s ease, box-shadow 0.08s ease,
+          border-color 0.08s ease, background 0.08s ease;
+      }
+
+      button:hover {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.3);
+        transform: translateY(-0.5px);
+      }
+
+      button.primary {
+        background: linear-gradient(135deg, #fbbf24, #f97316);
+        color: #111827;
+        border-color: transparent;
+        box-shadow: 0 12px 25px rgba(248, 181, 46, 0.55);
+      }
+
+      button.danger {
+        border-color: rgba(248, 113, 113, 0.9);
+        color: var(--danger);
+      }
+
+      button[disabled] {
+        opacity: 0.6;
+        cursor: default;
+        box-shadow: none;
+        transform: none;
+      }
+
+      .pokemon-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+        gap: 0.7rem;
+      }
+
+      .pokemon-card {
+        border-radius: 0.9rem;
+        border: 1px solid var(--border);
+        background: radial-gradient(circle at 0 0, #1f2937, #020617 60%);
+        padding: 0.55rem 0.6rem 0.6rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+      }
+
+      .pokemon-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 0.35rem;
+      }
+
+      .pokemon-card-main {
+        display: grid;
+        grid-template-columns: 52px minmax(0, 1fr);
+        gap: 0.4rem;
+        align-items: center;
+      }
+
+      .pokemon-card-img-wrap {
+        width: 52px;
+        height: 52px;
+        border-radius: 0.7rem;
+        overflow: hidden;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        background: radial-gradient(circle at 30% 20%, #1e293b, #020617);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .pokemon-card-img-wrap img {
+        max-width: 100%;
+        max-height: 100%;
+        display: block;
+        object-fit: contain;
+      }
+
+      .pokemon-card-title {
+        font-size: 0.8rem;
+        font-weight: 600;
+      }
+
+      .pokemon-card-sub {
+        font-size: 0.7rem;
+        color: var(--text-soft);
+      }
+
+      .type-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+      }
+
+      .type-badge {
+        font-size: 0.63rem;
+        padding: 0.15rem 0.4rem;
+        border-radius: 999px;
+        background: rgba(148, 163, 184, 0.12);
+        border: 1px solid rgba(148, 163, 184, 0.35);
+      }
+
+      .pokemon-card-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 0.25rem;
+      }
+
+      .stat-chip {
+        font-size: 0.65rem;
+        padding: 0.12rem 0.4rem;
+        border-radius: 999px;
+        background: rgba(34, 197, 94, 0.15);
+        color: #bbf7d0;
+      }
+
+      .heart {
+        font-size: 0.8rem;
+        color: #f97373;
+      }
+
+      .heart.outline {
+        color: var(--text-soft);
+      }
+
+      .pagination {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 0.75rem;
+        font-size: 0.75rem;
+        color: var(--text-soft);
+      }
+
+      .pagination-controls {
+        display: flex;
+        gap: 0.35rem;
+      }
+
+      .auth-forms {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+
+      .auth-row {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem;
+      }
+
+      @media (max-width: 600px) {
+        .auth-row {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+
+      .auth-status {
+        font-size: 0.75rem;
+        color: var(--text-soft);
+      }
+
+      .auth-status strong {
+        color: var(--accent);
+      }
+
+      .stack-v {
+        display: flex;
+        flex-direction: column;
+        gap: 0.45rem;
+      }
+
+      .error-text {
+        font-size: 0.72rem;
+        color: var(--danger);
+      }
+
+      .teams-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.45rem;
+        margin-top: 0.4rem;
+        max-height: 230px;
+        overflow: auto;
+      }
+
+      .team-item {
+        border-radius: 0.7rem;
+        border: 1px solid var(--border);
+        padding: 0.35rem 0.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+      }
+
+      .team-top-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.4rem;
+      }
+
+      .team-top-row h4 {
+        margin: 0;
+        font-size: 0.8rem;
+      }
+
+      .team-pokemons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+        font-size: 0.7rem;
+        color: var(--text-soft);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layout">
+      <header>
+        <h1>
+          <span class="logo-dot"></span>
+          <span>Pokédex NoSQL</span>
+        </h1>
+        <div style="display:flex;align-items:center;gap:0.6rem">
+          <a href="/favorites.html" style="font-size:0.8rem;color:var(--text-soft);text-decoration:none">
+            Mes favoris & équipes
+          </a>
+          <div class="chips" id="auth-summary"></div>
+        </div>
+      </header>
+
+      <main>
+        <!-- COLONNE GAUCHE : POKEMONS -->
+        <section class="card">
+          <div class="card-header">
+            <h2>Pokémons</h2>
+            <div class="chips">
+              <div class="pill">
+                <span class="pill-dot"></span>
+                <span id="total-counter">151 au total</span>
+              </div>
+              <span class="chip" id="favorites-counter">0 favoris</span>
+            </div>
+          </div>
+
+          <div class="section-title-row">
+            <h3>Catalogue</h3>
+            <small>Filtre, tri, pagination côté API</small>
+          </div>
+
+          <div class="filters">
+            <div class="field">
+              <label for="filter-name">Nom (EN)</label>
+              <input id="filter-name" placeholder="ex: pika, char..." />
+            </div>
+            <div class="field">
+              <label for="filter-type">Type</label>
+              <select id="filter-type">
+                <option value="">Tous</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="filter-sort">Tri</label>
+              <select id="filter-sort">
+                <option value="">Par défaut</option>
+                <option value="name.english">Nom anglais A→Z</option>
+                <option value="name.french">Nom français A→Z</option>
+                <option value="-base.HP">HP décroissant</option>
+                <option value="-base.Attack">Attaque décroissante</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>&nbsp;</label>
+              <button id="btn-apply-filters">Appliquer</button>
+            </div>
+          </div>
+
+          <div class="pokemon-grid" id="pokemon-grid"></div>
+
+          <div class="pagination">
+            <div>
+              Page <span id="page-current">1</span>/<span id="page-total"
+                >1</span
+              >
+              — <span id="page-range"></span>
+            </div>
+            <div class="pagination-controls">
+              <button id="btn-prev-page">Préc.</button>
+              <button id="btn-next-page">Suiv.</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- COLONNE DROITE : AUTH / FAVORIS / ÉQUIPES -->
+        <section class="card">
+          <div class="card-header">
+            <h2>Compte & actions</h2>
+            <div class="chips">
+              <span class="chip" id="auth-state-label">Non connecté</span>
+            </div>
+          </div>
+
+          <div class="auth-forms">
+            <div class="section-title-row">
+              <h3>Connexion</h3>
+              <small>JWT stocké côté navigateur</small>
+            </div>
+            <div class="auth-row">
+              <div class="stack-v">
+                <div class="field">
+                  <label for="auth-username">Nom d’utilisateur</label>
+                  <input id="auth-username" placeholder="sacha" />
+                </div>
+                <div class="field">
+                  <label for="auth-password">Mot de passe</label>
+                  <input
+                    id="auth-password"
+                    type="password"
+                    placeholder="pikachu"
+                  />
+                </div>
+                <div class="stack-v">
+                  <div style="display: flex; gap: 0.4rem; flex-wrap: wrap">
+                    <button id="btn-register">Inscription</button>
+                    <button id="btn-login" class="primary">Connexion</button>
+                    <button id="btn-logout" class="danger">Déconnexion</button>
+                  </div>
+                  <div class="auth-status" id="auth-status"></div>
+                </div>
+              </div>
+            </div>
+
+            <hr style="border: none; border-top: 1px solid var(--border)" />
+
+            <div class="section-title-row">
+              <h3>Favoris</h3>
+              <small>Basculer le cœur sur une carte</small>
+            </div>
+            <div class="stack-v">
+              <p style="margin: 0; font-size: 0.75rem; color: var(--text-soft)">
+                Cliquez sur le
+                <span class="heart">♥</span> d’un Pokémon pour le marquer ou le
+                retirer de vos favoris. Vous devez être connecté pour que ce
+                soit pris en compte.
+              </p>
+            </div>
+
+            <hr style="border: none; border-top: 1px solid var(--border)" />
+
+            <div class="section-title-row">
+              <h3>Équipes</h3>
+              <small>6 Pokémon max par équipe</small>
+            </div>
+
+            <div class="stack-v">
+              <div class="field">
+                <label for="team-name">Nom de l’équipe</label>
+                <input
+                  id="team-name"
+                  placeholder="Equipe Salamèche & co"
+                  maxlength="60"
+                />
+              </div>
+              <div class="field">
+                <label for="team-pokemons"
+                  >IDs des Pokémon (séparés par des virgules)</label
+                >
+                <input
+                  id="team-pokemons"
+                  placeholder="ex: 1,4,7,25,39,131"
+                />
+              </div>
+              <div style="display: flex; gap: 0.4rem; flex-wrap: wrap">
+                <button id="btn-create-team">Créer l’équipe</button>
+                <button id="btn-refresh-teams">Rafraîchir</button>
+              </div>
+              <div class="error-text" id="team-error"></div>
+              <div class="teams-list" id="teams-list"></div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      const API_BASE = '';
+
+      const state = {
+        page: 1,
+        limit: 20,
+        total: 0,
+        totalPages: 1,
+        filter: {
+          type: '',
+          name: '',
+          sort: '',
+        },
+        pokemonCache: [],
+        favorites: new Set(),
+        token: localStorage.getItem('jwt') || '',
+        username: localStorage.getItem('username') || '',
+      };
+
+      const els = {
+        grid: document.getElementById('pokemon-grid'),
+        totalCounter: document.getElementById('total-counter'),
+        favoritesCounter: document.getElementById('favorites-counter'),
+        pageCurrent: document.getElementById('page-current'),
+        pageTotal: document.getElementById('page-total'),
+        pageRange: document.getElementById('page-range'),
+        btnPrev: document.getElementById('btn-prev-page'),
+        btnNext: document.getElementById('btn-next-page'),
+        filterName: document.getElementById('filter-name'),
+        filterType: document.getElementById('filter-type'),
+        filterSort: document.getElementById('filter-sort'),
+        btnFilters: document.getElementById('btn-apply-filters'),
+        authUsername: document.getElementById('auth-username'),
+        authPassword: document.getElementById('auth-password'),
+        btnRegister: document.getElementById('btn-register'),
+        btnLogin: document.getElementById('btn-login'),
+        btnLogout: document.getElementById('btn-logout'),
+        authStatus: document.getElementById('auth-status'),
+        authStateLabel: document.getElementById('auth-state-label'),
+        authSummary: document.getElementById('auth-summary'),
+        teamName: document.getElementById('team-name'),
+        teamPokemons: document.getElementById('team-pokemons'),
+        btnCreateTeam: document.getElementById('btn-create-team'),
+        btnRefreshTeams: document.getElementById('btn-refresh-teams'),
+        teamError: document.getElementById('team-error'),
+        teamsList: document.getElementById('teams-list'),
+      };
+
+      function setAuthUI() {
+        const loggedIn = !!state.token;
+        els.authStateLabel.textContent = loggedIn
+          ? `Connecté${state.username ? ' : ' + state.username : ''}`
+          : 'Non connecté';
+        els.authSummary.innerHTML = '';
+        if (loggedIn) {
+          const badge = document.createElement('span');
+          badge.className = 'chip';
+          badge.textContent = 'JWT actif';
+          els.authSummary.appendChild(badge);
+        }
+      }
+
+      function buildTypeOptionsFromData(pokemons) {
+        const set = new Set();
+        pokemons.forEach((p) =>
+          (p.type || []).forEach((t) => {
+            set.add(t);
+          }),
+        );
+        els.filterType.innerHTML = '<option value="">Tous</option>';
+        [...set].sort().forEach((t) => {
+          const opt = document.createElement('option');
+          opt.value = t;
+          opt.textContent = t;
+          els.filterType.appendChild(opt);
+        });
+      }
+
+      async function apiFetch(path, options = {}) {
+        const headers = new Headers(options.headers || {});
+        headers.set('Content-Type', 'application/json');
+        if (state.token) {
+          headers.set('Authorization', 'Bearer ' + state.token);
+        }
+        const res = await fetch(API_BASE + path, {
+          ...options,
+          headers,
+        });
+        return res;
+      }
+
+      async function loadPokemons() {
+        const params = new URLSearchParams();
+        params.set('page', String(state.page));
+        params.set('limit', String(state.limit));
+        if (state.filter.type) params.set('type', state.filter.type);
+        if (state.filter.name) params.set('name', state.filter.name);
+        if (state.filter.sort) params.set('sort', state.filter.sort);
+
+        els.grid.innerHTML = '<p>Chargement...</p>';
+        try {
+          const res = await fetch(API_BASE + '/api/pokemons?' + params.toString());
+          const data = await res.json();
+          state.total = data.total || 0;
+          state.totalPages = data.totalPages || 1;
+          state.pokemonCache = data.data || [];
+
+          if (!els.filterType.dataset.filled) {
+            buildTypeOptionsFromData(state.pokemonCache);
+            els.filterType.dataset.filled = 'true';
+          }
+
+          renderPokemonGrid();
+        } catch (e) {
+          els.grid.innerHTML =
+            '<p class="error-text">Erreur lors du chargement des Pokémons.</p>';
+          console.error(e);
+        }
+      }
+
+      function renderPokemonGrid() {
+        els.grid.innerHTML = '';
+        state.pokemonCache.forEach((p) => {
+          const card = document.createElement('article');
+          card.className = 'pokemon-card';
+          const isFav = state.favorites.has(p.id);
+          const imgSrc = p.image || `/assets/pokemons/${p.id}.png`;
+
+          card.innerHTML = `
+            <a class="pokemon-card-main" href="/pokemon.html?id=${p.id}">
+              <div class="pokemon-card-img-wrap">
+                <img src="${imgSrc}" alt="${p.name.french}" loading="lazy" />
+              </div>
+              <div>
+                <div class="pokemon-card-header">
+                  <div>
+                    <div class="pokemon-card-title">#${String(p.id).padStart(
+                      3,
+                      '0',
+                    )} · ${p.name.english}</div>
+                    <div class="pokemon-card-sub">${p.name.french}</div>
+                  </div>
+                  <button class="btn-fav" data-id="${p.id}" title="${
+                    isFav ? 'Retirer des favoris' : 'Ajouter aux favoris'
+                  }" onclick="event.preventDefault(); event.stopPropagation();">
+                    <span class="heart ${isFav ? '' : 'outline'}">${
+                      isFav ? '♥' : '♡'
+                    }</span>
+                  </button>
+                </div>
+                <div class="type-badges">
+                  ${(p.type || [])
+                    .map((t) => `<span class="type-badge">${t}</span>`)
+                    .join('')}
+                </div>
+                <div class="pokemon-card-footer">
+                  <span class="stat-chip">HP ${p.base.HP}</span>
+                  <span class="stat-chip">ATK ${p.base.Attack}</span>
+                </div>
+              </div>
+            </a>
+          `;
+
+          els.grid.appendChild(card);
+        });
+
+        els.totalCounter.textContent = `${state.total} au total`;
+        els.favoritesCounter.textContent = `${state.favorites.size} favoris`;
+        els.pageCurrent.textContent = String(state.page);
+        els.pageTotal.textContent = String(state.totalPages);
+        const start = state.total === 0 ? 0 : (state.page - 1) * state.limit + 1;
+        const end = Math.min(state.total, state.page * state.limit);
+        els.pageRange.textContent = `${start}–${end}`;
+
+        document.querySelectorAll('.btn-fav').forEach((btn) => {
+          btn.addEventListener('click', () => onToggleFavorite(btn.dataset.id));
+        });
+      }
+
+      async function refreshFavoritesFromApi() {
+        if (!state.token) {
+          state.favorites = new Set();
+          els.favoritesCounter.textContent = '0 favoris';
+          renderPokemonGrid();
+          return;
+        }
+        try {
+          const res = await apiFetch('/api/favorites', { method: 'GET' });
+          if (!res.ok) throw new Error('failed');
+          const favs = await res.json();
+          state.favorites = new Set(favs.map((p) => p.id));
+          els.favoritesCounter.textContent = `${state.favorites.size} favoris`;
+          renderPokemonGrid();
+        } catch (e) {
+          console.warn('Impossible de récupérer les favoris', e);
+        }
+      }
+
+      async function onToggleFavorite(idStr) {
+        const id = Number(idStr);
+        if (!state.token) {
+          alert('Connectez-vous pour gérer vos favoris.');
+          return;
+        }
+        const isFav = state.favorites.has(id);
+        try {
+          const method = isFav ? 'DELETE' : 'POST';
+          const res = await apiFetch('/api/favorites/' + id, { method });
+          if (!res.ok) throw new Error('Fav error');
+          if (isFav) state.favorites.delete(id);
+          else state.favorites.add(id);
+          renderPokemonGrid();
+        } catch (e) {
+          console.error(e);
+          alert('Erreur lors de la mise à jour des favoris.');
+        }
+      }
+
+      async function register() {
+        els.authStatus.textContent = 'Inscription en cours...';
+        try {
+          const username = els.authUsername.value.trim();
+          const password = els.authPassword.value;
+          const res = await fetch(API_BASE + '/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            els.authStatus.textContent =
+              data.error || 'Erreur lors de l’inscription.';
+            return;
+          }
+          els.authStatus.textContent = 'Inscription réussie. Vous pouvez vous connecter.';
+        } catch (e) {
+          els.authStatus.textContent =
+            'Erreur inattendue lors de l’inscription.';
+        }
+      }
+
+      async function login() {
+        els.authStatus.textContent = 'Connexion en cours...';
+        try {
+          const username = els.authUsername.value.trim();
+          const password = els.authPassword.value;
+          const res = await fetch(API_BASE + '/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok || !data.token) {
+            els.authStatus.textContent =
+              data.error || 'Identifiants invalides.';
+            return;
+          }
+          state.token = data.token;
+          state.username = username;
+          localStorage.setItem('jwt', data.token);
+          localStorage.setItem('username', username);
+          els.authStatus.textContent = 'Connecté.';
+          setAuthUI();
+          await refreshFavoritesFromApi();
+        } catch (e) {
+          els.authStatus.textContent =
+            'Erreur inattendue lors de la connexion.';
+        }
+      }
+
+      function logout() {
+        state.token = '';
+        state.username = '';
+        localStorage.removeItem('jwt');
+        localStorage.removeItem('username');
+        els.authStatus.textContent = 'Déconnecté.';
+        setAuthUI();
+        refreshFavoritesFromApi();
+      }
+
+      function parsePokemonIdsFromInput(value) {
+        if (!value.trim()) return [];
+        return value
+          .split(',')
+          .map((s) => Number(s.trim()))
+          .filter((n) => Number.isFinite(n) && n > 0);
+      }
+
+      async function createTeam() {
+        els.teamError.textContent = '';
+        if (!state.token) {
+          els.teamError.textContent = 'Vous devez être connecté.';
+          return;
+        }
+        const name = els.teamName.value.trim();
+        const ids = parsePokemonIdsFromInput(els.teamPokemons.value);
+        if (!name) {
+          els.teamError.textContent = 'Le nom de l’équipe est requis.';
+          return;
+        }
+        if (ids.length > 6) {
+          els.teamError.textContent =
+            'Une équipe ne peut pas contenir plus de 6 Pokémon.';
+          return;
+        }
+        try {
+          const res = await apiFetch('/api/teams', {
+            method: 'POST',
+            body: JSON.stringify({ name, pokemons: ids }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            els.teamError.textContent = data.error || 'Erreur lors de la création.';
+            return;
+          }
+          els.teamName.value = '';
+          els.teamPokemons.value = '';
+          await loadTeams();
+        } catch (e) {
+          els.teamError.textContent =
+            'Erreur inattendue lors de la création de l’équipe.';
+        }
+      }
+
+      async function loadTeams() {
+        els.teamsList.innerHTML = '<p style="font-size:0.75rem">Chargement...</p>';
+        if (!state.token) {
+          els.teamsList.innerHTML =
+            '<p style="font-size:0.75rem">Connectez-vous pour voir vos équipes.</p>';
+          return;
+        }
+        try {
+          const res = await apiFetch('/api/teams', { method: 'GET' });
+          const teams = await res.json().catch(() => []);
+          if (!Array.isArray(teams)) {
+            els.teamsList.innerHTML =
+              '<p style="font-size:0.75rem">Aucune équipe.</p>';
+            return;
+          }
+          renderTeams(teams);
+        } catch (e) {
+          els.teamsList.innerHTML =
+            '<p class="error-text">Erreur lors du chargement des équipes.</p>';
+        }
+      }
+
+      function renderTeams(teams) {
+        els.teamsList.innerHTML = '';
+        if (!teams.length) {
+          els.teamsList.innerHTML =
+            '<p style="font-size:0.75rem;color:var(--text-soft)">Aucune équipe pour le moment.</p>';
+          return;
+        }
+        teams.forEach((team) => {
+          const div = document.createElement('div');
+          div.className = 'team-item';
+          const names =
+            (team.pokemons || [])
+              .map((p) => p?.name?.french || p?.name?.english || p?.id)
+              .join(', ') || '—';
+          div.innerHTML = `
+            <div class="team-top-row">
+              <h4>${team.name}</h4>
+              <button data-id="${team._id}" class="btn-delete-team danger">
+                Supprimer
+              </button>
+            </div>
+            <div class="team-pokemons">
+              ${names}
+            </div>
+          `;
+          els.teamsList.appendChild(div);
+        });
+        els.teamsList
+          .querySelectorAll('.btn-delete-team')
+          .forEach((btn) =>
+            btn.addEventListener('click', () =>
+              deleteTeam(btn.getAttribute('data-id')),
+            ),
+          );
+      }
+
+      async function deleteTeam(id) {
+        if (!confirm('Supprimer cette équipe ?')) return;
+        try {
+          const res = await apiFetch('/api/teams/' + id, { method: 'DELETE' });
+          if (!res.ok) {
+            alert('Erreur lors de la suppression.');
+            return;
+          }
+          await loadTeams();
+        } catch (e) {
+          alert('Erreur inattendue lors de la suppression.');
+        }
+      }
+
+      function bindEvents() {
+        els.btnFilters.addEventListener('click', () => {
+          state.filter.name = els.filterName.value.trim();
+          state.filter.type = els.filterType.value;
+          state.filter.sort = els.filterSort.value;
+          state.page = 1;
+          loadPokemons();
+        });
+
+        els.btnPrev.addEventListener('click', () => {
+          if (state.page > 1) {
+            state.page -= 1;
+            loadPokemons();
+          }
+        });
+
+        els.btnNext.addEventListener('click', () => {
+          if (state.page < state.totalPages) {
+            state.page += 1;
+            loadPokemons();
+          }
+        });
+
+        els.btnRegister.addEventListener('click', register);
+        els.btnLogin.addEventListener('click', login);
+        els.btnLogout.addEventListener('click', logout);
+
+        els.btnCreateTeam.addEventListener('click', createTeam);
+        els.btnRefreshTeams.addEventListener('click', loadTeams);
+      }
+
+      async function init() {
+        setAuthUI();
+        bindEvents();
+        await loadPokemons();
+        if (state.token) {
+          await refreshFavoritesFromApi();
+          await loadTeams();
+        }
+      }
+
+      init();
+    </script>
+  </body>
+</html>
+
