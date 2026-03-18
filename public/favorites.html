@@ -1,0 +1,581 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <title>Favoris & équipes · Pokédex NoSQL</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #020617;
+        --border: #1f2937;
+        --accent: #fbbf24;
+        --danger: #f87171;
+        --text: #e5e7eb;
+        --text-soft: #9ca3af;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+          sans-serif;
+        background: radial-gradient(circle at top, #1f2937 0, #020617 60%);
+        color: var(--text);
+      }
+
+      .layout {
+        min-height: 100vh;
+        display: grid;
+        grid-template-rows: auto 1fr;
+      }
+
+      header {
+        border-bottom: 1px solid var(--border);
+        padding: 0.75rem 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+      }
+
+      header a {
+        color: var(--text-soft);
+        text-decoration: none;
+        font-size: 0.8rem;
+      }
+
+      header a:hover {
+        color: var(--accent);
+      }
+
+      main {
+        max-width: 1100px;
+        margin: 1.5rem auto;
+        padding: 0 1.25rem 1.5rem;
+        display: grid;
+        grid-template-columns: minmax(0, 1.5fr) minmax(280px, 1fr);
+        gap: 1.25rem;
+      }
+
+      @media (max-width: 900px) {
+        main {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+
+      .card {
+        border-radius: 1rem;
+        border: 1px solid var(--border);
+        background: radial-gradient(circle at top left, #111827 0, #020617 55%);
+        padding: 1.1rem 1.2rem;
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.7);
+      }
+
+      h2 {
+        margin: 0 0 0.4rem;
+        font-size: 1rem;
+      }
+
+      p {
+        margin: 0;
+      }
+
+      .text-soft {
+        color: var(--text-soft);
+        font-size: 0.78rem;
+      }
+
+      .pokemon-grid {
+        margin-top: 0.75rem;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+        gap: 0.7rem;
+      }
+
+      .pokemon-card {
+        border-radius: 0.9rem;
+        border: 1px solid var(--border);
+        background: radial-gradient(circle at 0 0, #1f2937, #020617 60%);
+        padding: 0.55rem 0.6rem 0.6rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+      }
+
+      .pokemon-card-main {
+        display: grid;
+        grid-template-columns: 52px minmax(0, 1fr);
+        gap: 0.4rem;
+        align-items: center;
+        text-decoration: none;
+        color: inherit;
+      }
+
+      .pokemon-card-img-wrap {
+        width: 52px;
+        height: 52px;
+        border-radius: 0.7rem;
+        overflow: hidden;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        background: radial-gradient(circle at 30% 20%, #1e293b, #020617);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .pokemon-card-img-wrap img {
+        max-width: 100%;
+        max-height: 100%;
+        display: block;
+        object-fit: contain;
+      }
+
+      .pokemon-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 0.35rem;
+      }
+
+      .pokemon-card-title {
+        font-size: 0.8rem;
+        font-weight: 600;
+      }
+
+      .pokemon-card-sub {
+        font-size: 0.7rem;
+        color: var(--text-soft);
+      }
+
+      .type-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+      }
+
+      .type-badge {
+        font-size: 0.63rem;
+        padding: 0.15rem 0.4rem;
+        border-radius: 999px;
+        background: rgba(148, 163, 184, 0.12);
+        border: 1px solid rgba(148, 163, 184, 0.35);
+      }
+
+      .pokemon-card-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 0.25rem;
+      }
+
+      .stat-chip {
+        font-size: 0.65rem;
+        padding: 0.12rem 0.4rem;
+        border-radius: 999px;
+        background: rgba(34, 197, 94, 0.15);
+        color: #bbf7d0;
+      }
+
+      .heart {
+        font-size: 0.8rem;
+        color: #f97373;
+      }
+
+      .heart.outline {
+        color: var(--text-soft);
+      }
+
+      button {
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.6);
+        padding: 0.35rem 0.8rem;
+        background: linear-gradient(to right, #111827, #020617);
+        color: var(--text);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        font-size: 0.78rem;
+      }
+
+      button.danger {
+        border-color: rgba(248, 113, 113, 0.9);
+        color: var(--danger);
+      }
+
+      .teams-list {
+        margin-top: 0.7rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.55rem;
+      }
+
+      .team-item {
+        border-radius: 0.7rem;
+        border: 1px solid var(--border);
+        padding: 0.4rem 0.55rem;
+        font-size: 0.78rem;
+      }
+
+      .team-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.45rem;
+      }
+
+      .team-header h3 {
+        margin: 0;
+        font-size: 0.85rem;
+      }
+
+      .team-pokemons {
+        margin-top: 0.25rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+        color: var(--text-soft);
+      }
+
+      .team-pokemon-pill {
+        padding: 0.15rem 0.45rem;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.4);
+      }
+
+      .error-text {
+        font-size: 0.75rem;
+        color: var(--danger);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layout">
+      <header>
+        <div style="display:flex;align-items:center;gap:0.6rem">
+          <a href="/">&larr; Retour au Pokédex</a>
+          <span style="font-size:0.85rem;color:var(--text-soft)"
+            >Mes favoris & équipes</span
+          >
+        </div>
+        <span id="user-label" class="text-soft">Non connecté</span>
+      </header>
+
+      <main>
+        <section class="card">
+          <h2>Pokémons favoris</h2>
+          <p class="text-soft">
+            Liste des Pokémons que vous avez marqués en favoris depuis le
+            Pokédex.
+          </p>
+          <div
+            id="fav-warning"
+            class="text-soft"
+            style="margin-top:0.4rem;color:var(--danger)"
+          ></div>
+          <div class="pokemon-grid" id="fav-grid" style="margin-top:0.5rem">
+            <p class="text-soft">Chargement...</p>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Gestion des équipes</h2>
+          <p class="text-soft">
+            Créez, visualisez et supprimez vos équipes (6 Pokémon max).
+          </p>
+          <div
+            id="team-warning"
+            class="error-text"
+            style="margin-top:0.4rem"
+          ></div>
+
+          <div style="margin-top:0.7rem;display:flex;flex-direction:column;gap:0.55rem">
+            <div style="display:flex;flex-direction:column;gap:0.35rem">
+              <label for="team-name" class="text-soft">Nom de l’équipe</label>
+              <input
+                id="team-name"
+                placeholder="Equipe Pikachu & co"
+                style="border-radius:0.5rem;border:1px solid var(--border);padding:0.35rem 0.5rem;background:rgba(15,23,42,0.9);color:var(--text);font-size:0.8rem;"
+              />
+            </div>
+            <div style="display:flex;flex-direction:column;gap:0.35rem">
+              <label for="team-pokemons" class="text-soft"
+                >IDs de Pokémon (séparés par des virgules, max 6)</label
+              >
+              <input
+                id="team-pokemons"
+                placeholder="ex: 1,4,7,25,39,131"
+                style="border-radius:0.5rem;border:1px solid var(--border);padding:0.35rem 0.5rem;background:rgba(15,23,42,0.9);color:var(--text);font-size:0.8rem;"
+              />
+            </div>
+            <div style="display:flex;gap:0.4rem;flex-wrap:wrap">
+              <button id="btn-create-team">Créer l’équipe</button>
+              <button id="btn-refresh">Rafraîchir les équipes</button>
+            </div>
+            <div class="error-text" id="team-error"></div>
+          </div>
+
+          <div style="margin-top:0.6rem">
+            <div class="teams-list" id="teams-list">
+              <p class="text-soft">Chargement...</p>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      const state = {
+        token: localStorage.getItem('jwt') || '',
+        username: localStorage.getItem('username') || '',
+      };
+
+      const els = {
+        userLabel: document.getElementById('user-label'),
+        favGrid: document.getElementById('fav-grid'),
+        favWarning: document.getElementById('fav-warning'),
+        teamWarning: document.getElementById('team-warning'),
+        teamsList: document.getElementById('teams-list'),
+        btnRefresh: document.getElementById('btn-refresh'),
+        teamName: document.getElementById('team-name'),
+        teamPokemons: document.getElementById('team-pokemons'),
+        teamError: document.getElementById('team-error'),
+        btnCreateTeam: document.getElementById('btn-create-team'),
+      };
+
+      function setUserUi() {
+        if (state.token && state.username) {
+          els.userLabel.textContent = 'Connecté : ' + state.username;
+        } else if (state.token) {
+          els.userLabel.textContent = 'Connecté';
+        } else {
+          els.userLabel.textContent = 'Non connecté';
+        }
+      }
+
+      async function apiFetch(path, options = {}) {
+        const headers = new Headers(options.headers || {});
+        headers.set('Content-Type', 'application/json');
+        if (state.token) {
+          headers.set('Authorization', 'Bearer ' + state.token);
+        }
+        const res = await fetch(path, {
+          ...options,
+          headers,
+        });
+        return res;
+      }
+
+      async function loadFavorites() {
+        if (!state.token) {
+          els.favWarning.textContent =
+            'Vous devez être connecté pour voir vos favoris.';
+          els.favGrid.innerHTML = '';
+          return;
+        }
+        els.favWarning.textContent = '';
+        els.favGrid.innerHTML = '<p class="text-soft">Chargement...</p>';
+        try {
+          const res = await apiFetch('/api/favorites', { method: 'GET' });
+          if (!res.ok) {
+            els.favGrid.innerHTML =
+              '<p class="error-text">Erreur lors du chargement des favoris.</p>';
+            return;
+          }
+          const favs = await res.json();
+          renderFavorites(favs);
+        } catch (e) {
+          console.error(e);
+          els.favGrid.innerHTML =
+            '<p class="error-text">Erreur inattendue lors du chargement.</p>';
+        }
+      }
+
+      function renderFavorites(list) {
+        els.favGrid.innerHTML = '';
+        if (!Array.isArray(list) || !list.length) {
+          els.favGrid.innerHTML =
+            '<p class="text-soft">Aucun favori pour le moment.</p>';
+          return;
+        }
+        list.forEach((p) => {
+          const card = document.createElement('article');
+          card.className = 'pokemon-card';
+          const imgSrc = p.image || `/assets/pokemons/${p.id}.png`;
+          card.innerHTML = `
+            <a class="pokemon-card-main" href="/pokemon.html?id=${p.id}">
+              <div class="pokemon-card-img-wrap">
+                <img src="${imgSrc}" alt="${p.name.french}" loading="lazy" />
+              </div>
+              <div>
+                <div class="pokemon-card-header">
+                  <div>
+                    <div class="pokemon-card-title">#${String(p.id).padStart(
+                      3,
+                      '0',
+                    )} · ${p.name.english}</div>
+                    <div class="pokemon-card-sub">${p.name.french}</div>
+                  </div>
+                  <span class="heart">♥</span>
+                </div>
+                <div class="type-badges">
+                  ${(p.type || [])
+                    .map((t) => `<span class="type-badge">${t}</span>`)
+                    .join('')}
+                </div>
+                <div class="pokemon-card-footer">
+                  <span class="stat-chip">HP ${p.base.HP}</span>
+                  <span class="stat-chip">ATK ${p.base.Attack}</span>
+                </div>
+              </div>
+            </a>
+          `;
+          els.favGrid.appendChild(card);
+        });
+      }
+
+      async function loadTeams() {
+        if (!state.token) {
+          els.teamWarning.textContent =
+            'Vous devez être connecté pour voir vos équipes.';
+          els.teamsList.innerHTML = '';
+          return;
+        }
+        els.teamWarning.textContent = '';
+        els.teamsList.innerHTML =
+          '<p class="text-soft">Chargement des équipes...</p>';
+        try {
+          const res = await apiFetch('/api/teams', { method: 'GET' });
+          if (!res.ok) {
+            els.teamsList.innerHTML =
+              '<p class="error-text">Erreur lors du chargement des équipes.</p>';
+            return;
+          }
+          const teams = await res.json();
+          renderTeams(teams);
+        } catch (e) {
+          console.error(e);
+          els.teamsList.innerHTML =
+            '<p class="error-text">Erreur inattendue lors du chargement.</p>';
+        }
+      }
+
+      function parsePokemonIdsFromInput(value) {
+        if (!value.trim()) return [];
+        return value
+          .split(',')
+          .map((s) => Number(s.trim()))
+          .filter((n) => Number.isFinite(n) && n > 0);
+      }
+
+      async function createTeam() {
+        els.teamError.textContent = '';
+        if (!state.token) {
+          els.teamError.textContent = 'Vous devez être connecté.';
+          return;
+        }
+        const name = els.teamName.value.trim();
+        const ids = parsePokemonIdsFromInput(els.teamPokemons.value);
+        if (!name) {
+          els.teamError.textContent = 'Le nom de l’équipe est requis.';
+          return;
+        }
+        if (ids.length > 6) {
+          els.teamError.textContent =
+            'Une équipe ne peut pas contenir plus de 6 Pokémon.';
+          return;
+        }
+        try {
+          const res = await apiFetch('/api/teams', {
+            method: 'POST',
+            body: JSON.stringify({ name, pokemons: ids }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            els.teamError.textContent =
+              data.error || 'Erreur lors de la création de l’équipe.';
+            return;
+          }
+          els.teamName.value = '';
+          els.teamPokemons.value = '';
+          await loadTeams();
+        } catch (e) {
+          els.teamError.textContent =
+            'Erreur inattendue lors de la création de l’équipe.';
+        }
+      }
+
+      function renderTeams(teams) {
+        els.teamsList.innerHTML = '';
+        if (!Array.isArray(teams) || !teams.length) {
+          els.teamsList.innerHTML =
+            '<p class="text-soft">Aucune équipe pour le moment.</p>';
+          return;
+        }
+        teams.forEach((team) => {
+          const div = document.createElement('div');
+          div.className = 'team-item';
+          const names =
+            (team.pokemons || [])
+              .map((p) => p?.name?.french || p?.name?.english || p?.id)
+              .join(', ') || '—';
+          div.innerHTML = `
+            <div class="team-header">
+              <h3>${team.name}</h3>
+              <button class="danger" data-id="${team._id}">Supprimer</button>
+            </div>
+            <div class="team-pokemons">
+              ${(team.pokemons || [])
+                .map(
+                  (p) =>
+                    `<span class="team-pokemon-pill">#${String(
+                      p.id,
+                    ).padStart(3, '0')} · ${
+                      p.name.french || p.name.english || ''
+                    }</span>`,
+                )
+                .join('')}
+            </div>
+          `;
+          els.teamsList.appendChild(div);
+        });
+        els.teamsList.querySelectorAll('button[data-id]').forEach((btn) => {
+          btn.addEventListener('click', () =>
+            deleteTeam(btn.getAttribute('data-id')),
+          );
+        });
+      }
+
+      async function deleteTeam(id) {
+        if (!confirm('Supprimer cette équipe ?')) return;
+        try {
+          const res = await apiFetch('/api/teams/' + id, { method: 'DELETE' });
+          if (!res.ok) {
+            alert('Erreur lors de la suppression.');
+            return;
+          }
+          await loadTeams();
+        } catch (e) {
+          alert('Erreur inattendue lors de la suppression.');
+        }
+      }
+
+      function init() {
+        setUserUi();
+        els.btnRefresh.addEventListener('click', () => {
+          loadTeams();
+        });
+        els.btnCreateTeam.addEventListener('click', createTeam);
+        loadFavorites();
+        loadTeams();
+      }
+
+      init();
+    </script>
+  </body>
+</html>
+

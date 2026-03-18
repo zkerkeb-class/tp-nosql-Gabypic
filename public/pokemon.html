@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <title>Détail Pokémon · Pokédex NoSQL</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #020617;
+        --border: #1f2937;
+        --accent: #fbbf24;
+        --text: #e5e7eb;
+        --text-soft: #9ca3af;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+          sans-serif;
+        background: radial-gradient(circle at top, #1f2937 0, #020617 60%);
+        color: var(--text);
+      }
+
+      .layout {
+        min-height: 100vh;
+        display: grid;
+        grid-template-rows: auto 1fr;
+      }
+
+      header {
+        border-bottom: 1px solid var(--border);
+        padding: 0.75rem 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+      }
+
+      header a {
+        color: var(--text-soft);
+        text-decoration: none;
+        font-size: 0.8rem;
+      }
+
+      header a:hover {
+        color: var(--accent);
+      }
+
+      main {
+        max-width: 960px;
+        margin: 1.5rem auto;
+        padding: 0 1.25rem 1.5rem;
+      }
+
+      .card {
+        border-radius: 1.1rem;
+        border: 1px solid var(--border);
+        background: radial-gradient(circle at top left, #111827 0, #020617 60%);
+        padding: 1.25rem 1.4rem;
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.7);
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.2fr);
+        gap: 1.4rem;
+        align-items: center;
+      }
+
+      @media (max-width: 800px) {
+        .hero {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+
+      .hero-images {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.8rem;
+      }
+
+      .img-card {
+        border-radius: 0.9rem;
+        border: 1px solid var(--border);
+        background: radial-gradient(circle at 30% 20%, #1e293b, #020617);
+        padding: 0.75rem;
+        text-align: center;
+      }
+
+      .img-card h3 {
+        margin: 0 0 0.35rem;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: var(--text-soft);
+      }
+
+      .img-wrap {
+        width: 100%;
+        aspect-ratio: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .img-wrap img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+      }
+
+      .hero-meta h1 {
+        margin: 0 0 0.25rem;
+        font-size: 1.4rem;
+      }
+
+      .hero-meta h2 {
+        margin: 0 0 0.6rem;
+        font-size: 0.95rem;
+        color: var(--text-soft);
+      }
+
+      .types {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        margin-bottom: 0.8rem;
+      }
+
+      .type-badge {
+        font-size: 0.72rem;
+        padding: 0.2rem 0.5rem;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.55);
+        background: rgba(148, 163, 184, 0.12);
+      }
+
+      .lang-names {
+        font-size: 0.78rem;
+        color: var(--text-soft);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+      }
+
+      .lang-chip strong {
+        color: var(--accent);
+        margin-right: 0.15rem;
+      }
+
+      .stats-section {
+        margin-top: 1.3rem;
+        display: grid;
+        grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+        gap: 1rem;
+      }
+
+      @media (max-width: 800px) {
+        .stats-section {
+          grid-template-columns: minmax(0, 1fr);
+        }
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.5rem 0.75rem;
+      }
+
+      .stat-row {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-size: 0.8rem;
+      }
+
+      .stat-label {
+        width: 4.5rem;
+        color: var(--text-soft);
+      }
+
+      .stat-bar-track {
+        flex: 1;
+        height: 0.45rem;
+        border-radius: 999px;
+        background: rgba(15, 23, 42, 1);
+        overflow: hidden;
+      }
+
+      .stat-bar-fill {
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #22c55e, #fbbf24);
+      }
+
+      .stat-value {
+        width: 2.3rem;
+        text-align: right;
+        font-size: 0.78rem;
+      }
+
+      .meta-card {
+        border-radius: 0.9rem;
+        border: 1px solid var(--border);
+        background: rgba(15, 23, 42, 0.7);
+        padding: 0.6rem 0.75rem;
+        font-size: 0.78rem;
+        color: var(--text-soft);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layout">
+      <header>
+        <div style="display: flex; align-items: center; gap: 0.6rem">
+          <a href="/">&larr; Retour</a>
+          <span style="font-size: 0.85rem; color: var(--text-soft)"
+            >Détail du Pokémon</span
+          >
+        </div>
+        <span id="header-id" style="font-size: 0.8rem; color: var(--text-soft)"
+          >#---</span
+        >
+      </header>
+
+      <main>
+        <section class="card" id="content">
+          <p>Chargement du Pokémon...</p>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const id = Number(params.get('id'));
+      const content = document.getElementById('content');
+      const headerId = document.getElementById('header-id');
+
+      async function loadPokemon() {
+        if (!id || !Number.isFinite(id)) {
+          content.innerHTML =
+            '<p style="color:#f87171">ID de Pokémon invalide.</p>';
+          return;
+        }
+        headerId.textContent = '#' + String(id).padStart(3, '0');
+
+        try {
+          const res = await fetch('/api/pokemons/' + id);
+          if (!res.ok) {
+            content.innerHTML =
+              '<p style="color:#f87171">Pokémon introuvable.</p>';
+            return;
+          }
+          const p = await res.json();
+          renderPokemon(p);
+        } catch (e) {
+          console.error(e);
+          content.innerHTML =
+            '<p style="color:#f87171">Erreur lors du chargement.</p>';
+        }
+      }
+
+      function renderPokemon(p) {
+        const normalImg = p.image || `/assets/pokemons/${p.id}.png`;
+        const shinyImg = `/assets/pokemons/shiny/${p.id}.png`;
+
+        const totalStats =
+          (p.base?.HP || 0) +
+          (p.base?.Attack || 0) +
+          (p.base?.Defense || 0) +
+          (p.base?.SpecialAttack || 0) +
+          (p.base?.SpecialDefense || 0) +
+          (p.base?.Speed || 0);
+
+        content.innerHTML = `
+          <div class="hero">
+            <div class="hero-images">
+              <div class="img-card">
+                <h3>Classique</h3>
+                <div class="img-wrap">
+                  <img src="${normalImg}" alt="${p.name.french}" loading="lazy" />
+                </div>
+              </div>
+              <div class="img-card">
+                <h3>Shiny</h3>
+                <div class="img-wrap">
+                  <img src="${shinyImg}" alt="${p.name.french} shiny" loading="lazy" />
+                </div>
+              </div>
+            </div>
+            <div class="hero-meta">
+              <h1>#${String(p.id).padStart(3, '0')} · ${p.name.english}</h1>
+              <h2>${p.name.french}</h2>
+              <div class="types">
+                ${(p.type || [])
+                  .map((t) => `<span class="type-badge">${t}</span>`)
+                  .join('')}
+              </div>
+              <div class="lang-names">
+                <span class="lang-chip"><strong>JP</strong>${
+                  p.name.japanese || '—'
+                }</span>
+                <span class="lang-chip"><strong>ZH</strong>${
+                  p.name.chinese || '—'
+                }</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="stats-section">
+            <div>
+              <h3 style="margin:1rem 0 0.5rem;font-size:0.9rem;">Statistiques de base</h3>
+              <div class="stats-grid">
+                ${renderStatRow('HP', p.base.HP)}
+                ${renderStatRow('ATK', p.base.Attack)}
+                ${renderStatRow('DEF', p.base.Defense)}
+                ${renderStatRow('SpA', p.base.SpecialAttack)}
+                ${renderStatRow('SpD', p.base.SpecialDefense)}
+                ${renderStatRow('VIT', p.base.Speed)}
+              </div>
+            </div>
+            <div class="meta-card">
+              <p style="margin:0 0 0.4rem;">
+                <strong>Résumé</strong>
+              </p>
+              <p style="margin:0 0 0.25rem;">
+                Total de stats&nbsp;: <strong>${totalStats}</strong>
+              </p>
+              <p style="margin:0 0 0.25rem;">
+                Type(s)&nbsp;: ${(p.type || []).join(', ') || '—'}
+              </p>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderStatRow(label, value) {
+        const v = Number(value) || 0;
+        const pct = Math.min(100, Math.round((v / 255) * 100));
+        return `
+          <div class="stat-row">
+            <span class="stat-label">${label}</span>
+            <div class="stat-bar-track">
+              <div class="stat-bar-fill" style="width:${pct}%;"></div>
+            </div>
+            <span class="stat-value">${v}</span>
+          </div>
+        `;
+      }
+
+      loadPokemon();
+    </script>
+  </body>
+</html>
+
